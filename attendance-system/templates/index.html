@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance System</title>
+  <meta name="description" content="Automated Face Recognition Attendance System — register students, mark attendance, and view reports." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --card:      #1a2236;
+      --border:    #243045;
+      --accent:    #6366f1;
+      --accent2:   #8b5cf6;
+      --success:   #10b981;
+      --danger:    #ef4444;
+      --warning:   #f59e0b;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139,92,246,.14) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2.5rem;
+      background: rgba(17,24,39,.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
+
+    .health-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .8rem;
+      color: var(--success);
+      background: rgba(16,185,129,.12);
+      border: 1px solid rgba(16,185,129,.3);
+      padding: .35rem .85rem;
+      border-radius: 999px;
+    }
+
+    .health-badge span { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 1.5s infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+    /* ── Main layout ── */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: .4rem;
+    }
+
+    .subtitle { color: var(--muted); font-size: .95rem; margin-bottom: 2rem; }
+
+    /* ── Stat cards ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      transition: transform .2s, border-color .2s;
+    }
+
+    .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+    .stat-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem; }
+    .stat-value { font-size: 1.9rem; font-weight: 700; }
+    .stat-value.green  { color: var(--success); }
+    .stat-value.purple { color: var(--accent); }
+    .stat-value.amber  { color: var(--warning); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 1.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .4rem;
+      width: fit-content;
+    }
+
+    .tab-btn {
+      padding: .6rem 1.4rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: .88rem;
+      font-weight: 600;
+      font-family: inherit;
+      background: transparent;
+      color: var(--muted);
+      transition: all .2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,.4);
+    }
+
+    .tab-btn:not(.active):hover { color: var(--text); background: var(--card); }
+
+    /* ── Panel ── */
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeUp .3s ease; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    /* ── Form ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media(max-width:600px){ .form-grid { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: .45rem; }
+    .field.full { grid-column: 1 / -1; }
+
+    label { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+    input[type="text"], input[type="date"], input[type="file"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .9rem;
+      padding: .7rem 1rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.18); }
+
+    input[type="file"] { cursor: pointer; }
+    input[type="file"]::file-selector-button {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      padding: .4rem .9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 600;
+      font-family: inherit;
+      margin-right: .75rem;
+    }
+
+    .preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+
+    .preview-grid img {
+      width: 70px; height: 70px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      padding: .75rem 1.75rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: all .2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,.35);
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,.45); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Alert / Toast ── */
+    .alert {
+      padding: .9rem 1.2rem;
+      border-radius: 10px;
+      font-size: .88rem;
+      font-weight: 500;
+      margin-top: 1.25rem;
+      display: none;
+      align-items: flex-start;
+      gap: .6rem;
+      animation: fadeUp .25s ease;
+    }
+
+    .alert.show { display: flex; }
+    .alert-success { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.35); color: #6ee7b7; }
+    .alert-error   { background: rgba(239,68,68,.12);  border: 1px solid rgba(239,68,68,.35);  color: #fca5a5; }
+    .alert-warning { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.35); color: #fcd34d; }
+
+    /* ── Attendance table ── */
+    .table-wrap { overflow-x: auto; margin-top: 1rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+
+    thead th {
+      text-align: left;
+      padding: .75rem 1rem;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr { transition: background .15s; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+
+    tbody td {
+      padding: .85rem 1rem;
+      border-bottom: 1px solid rgba(36,48,69,.5);
+      vertical-align: middle;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: .2rem .65rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+
+    .badge-present { background: rgba(16,185,129,.15); color: var(--success); }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: .75rem; }
+
+    /* ── Drop zone ── */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,.06);
+    }
+
+    .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+    .dropzone .dz-icon { font-size: 2rem; margin-bottom: .5rem; }
+    .dropzone p { font-size: .88rem; color: var(--muted); }
+    .dropzone p strong { color: var(--accent); }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* ── Summary cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      transition: border-color .2s;
+    }
+
+    .summary-card:hover { border-color: var(--accent); }
+    .summary-name { font-weight: 600; margin-bottom: .25rem; }
+    .summary-roll { font-size: .78rem; color: var(--muted); margin-bottom: .6rem; }
+    .summary-count { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .summary-days  { font-size: .75rem; color: var(--muted); }
+
+    .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+    /* ── Progress bar ── */
+    .progress-bar-wrap { background: var(--border); border-radius: 999px; height: 6px; margin-top: .5rem; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s ease; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎓</div>
+    AttendAI
+  </div>
+  <div class="health-badge" id="healthBadge">
+    <span></span> System Online
+  </div>
+</header>
+
+<main>
+  <h1>Attendance Dashboard</h1>
+  <p class="subtitle">Automated face-recognition attendance management</p>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Registered Students</div>
+      <div class="stat-value purple" id="statUsers">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Present Today</div>
+      <div class="stat-value green" id="statToday">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Records</div>
+      <div class="stat-value amber" id="statTotal">—</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-register"   onclick="switchTab('register')">📋 Register</button>
+    <button class="tab-btn"        id="tab-attendance" onclick="switchTab('attendance')">📸 Mark Attendance</button>
+    <button class="tab-btn"        id="tab-records"    onclick="switchTab('records')">📊 Records</button>
+    <button class="tab-btn"        id="tab-summary"    onclick="switchTab('summary')">🏆 Summary</button>
+  </div>
+
+  <!-- ── Panel: Register ── -->
+  <div class="panel active" id="panel-register">
+    <div class="card">
+      <div class="card-title">📋 Register New Student</div>
+      <form id="registerForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="rollNo">Roll Number</label>
+            <input type="text" id="rollNo" placeholder="e.g. CS-2024-001" required />
+          </div>
+          <div class="field">
+            <label for="studentName">Full Name</label>
+            <input type="text" id="studentName" placeholder="e.g. John Smith" required />
+          </div>
+          <div class="field full">
+            <label>Face Photos (2–10 images)</label>
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="faceImages" name="images" accept="image/*" multiple required />
+              <div class="dz-icon">🖼️</div>
+              <p><strong>Click to browse</strong> or drag &amp; drop images</p>
+              <p style="font-size:.78rem;margin-top:.35rem">Supports JPG, PNG, WEBP</p>
+            </div>
+            <div class="preview-grid" id="previewGrid"></div>
+          </div>
+        </div>
+        <div style="margin-top:1.5rem;display:flex;gap:.75rem;align-items:center">
+          <button type="submit" class="btn btn-primary" id="registerBtn">
+            <span class="spinner" id="regSpinner"></span>
+            Register Student
+          </button>
+          <button type="button" class="btn btn-outline" onclick="resetRegisterForm()">Reset</button>
+        </div>
+      </form>
+      <div class="alert" id="registerAlert"></div>
+    </div>
+  </div>
+
+  <!-- ── Panel: Mark Attendance ── -->
+  <div class="panel" id="panel-attendance">
+    <div class="card">
+      <div class="card-title">📸 Mark Attendance</div>
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1.25rem">
+        Upload a photo containing a registered student's face to mark their attendance for today.
+      </p>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Attendance Photo</label>
+          <div class="dropzone" id="dropzone2">
+            <input type="file" id="attendanceImage" accept="image/*" />
+            <div class="dz-icon">📷</div>
+            <p><strong>Click to browse</strong> or drag &amp; drop a photo</p>
+          </div>
+          <div id="attendancePreview" style="margin-top:.75rem"></div>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem">
+        <button class="btn btn-primary" id="markBtn" onclick="markAttendance()">
+          <span class="spinner" id="markSpinner"></span>
+          Mark Attendance
+        </button>
+      </div>
+      <div class="alert" id="attendanceAlert"></div>
+
+      <!-- Result card -->
+      <div id="recognitionResult" style="display:none;margin-top:1.5rem">
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:1.4rem">👤</div>
+          <div>
+            <div style="font-weight:700;font-size:1.1rem" id="resultName"></div>
+            <div style="color:var(--muted);font-size:.85rem" id="resultRoll"></div>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-size:.75rem;color:var(--muted)">Confidence</div>
+            <div style="font-weight:700;color:var(--success)" id="resultConf"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Panel: Records ── -->
+  <div class="panel" id="panel-records">
+    <div class="card">
+      <div class="card-title">📊 Attendance Records</div>
+      <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.25rem">
+        <div class="field" style="flex:1;min-width:180px">
+          <label for="dateFilter">Select Date</label>
+          <input type="date" id="dateFilter" />
+        </div>
+        <button class="btn btn-primary" onclick="fetchRecords()">
+          <span class="spinner" id="recordsSpinner"></span>
+          Load Records
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table id="recordsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Roll No.</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody">
+            <tr><td colspan="5"><div class="empty-state"><div class="icon">📅</div>Select a date and click Load Records</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Panel: Summary ── -->
+  <div class="panel" id="panel-summary">
+    <div class="card">
+      <div class="card-title">🏆 Attendance Summary</div>
+      <div style="display:flex;gap:.75rem;margin-bottom:1.5rem">
+        <button class="btn btn-primary" onclick="fetchSummary()">
+          <span class="spinner" id="summarySpinner"></span>
+          Refresh Summary
+        </button>
+      </div>
+      <div id="summaryContent">
+        <div class="empty-state"><div class="icon">🏆</div>Click Refresh Summary to load data</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  /* ── Tab switching ── */
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  /* ── Alert helper ── */
+  function showAlert(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = (type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️') + ' <span>' + msg + '</span>';
+  }
+
+  function hideAlert(id) {
+    const el = document.getElementById(id);
+    el.className = 'alert';
+  }
+
+  /* ── Spinner ── */
+  function setLoading(btnId, spinnerId, loading) {
+    const btn = document.getElementById(btnId);
+    const sp  = document.getElementById(spinnerId);
+    btn.disabled = loading;
+    sp.style.display = loading ? 'block' : 'none';
+  }
+
+  /* ── Image preview for registration ── */
+  document.getElementById('faceImages').addEventListener('change', function () {
+    const grid = document.getElementById('previewGrid');
+    grid.innerHTML = '';
+    Array.from(this.files).forEach(f => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      grid.appendChild(img);
+    });
+  });
+
+  /* ── Image preview for attendance ── */
+  document.getElementById('attendanceImage').addEventListener('change', function () {
+    const wrap = document.getElementById('attendancePreview');
+    wrap.innerHTML = '';
+    if (this.files[0]) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(this.files[0]);
+      img.style.cssText = 'max-width:260px;border-radius:10px;border:2px solid var(--border)';
+      wrap.appendChild(img);
+    }
+  });
+
+  /* ── Drag-over highlight ── */
+  ['dropzone', 'dropzone2'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('dragover'); });
+    el.addEventListener('dragleave', () => el.classList.remove('dragover'));
+    el.addEventListener('drop', () => el.classList.remove('dragover'));
+  });
+
+  /* ── Register form ── */
+  document.getElementById('registerForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideAlert('registerAlert');
+    setLoading('registerBtn', 'regSpinner', true);
+
+    const fd = new FormData();
+    fd.append('roll_no', document.getElementById('rollNo').value.trim());
+    fd.append('name', document.getElementById('studentName').value.trim());
+    Array.from(document.getElementById('faceImages').files).forEach(f => fd.append('images', f));
+
+    try {
+      const res = await fetch('/api/register', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert('registerAlert', 'success', data.message || 'Student registered successfully!');
+        loadStats();
+        resetRegisterForm();
+      } else {
+        showAlert('registerAlert', 'error', data.error || 'Registration failed.');
+      }
+    } catch (err) {
+      showAlert('registerAlert', 'error', 'Network error: ' + err.message);
+    } finally {
+      setLoading('registerBtn', 'regSpinner', false);
+    }
+  });
+
+  function resetRegisterForm() {
+    document.getElementById('registerForm').reset();
+    document.getElementById('previewGrid').innerHTML = '';
+    hideAlert('registerAlert');
+  }
+
+  /* ── Mark attendance ── */
+  async function markAttendance() {
+    const file = document.getElementById('attendanceImage').files[0];
+    if (!file) { showAlert('attendanceAlert', 'warning', 'Please select an image first.'); return; }
+    hideAlert('attendanceAlert');
+    document.getElementById('recognitionResult').style.display = 'none';
+    setLoading('markBtn', 'markSpinner', true);
+
+    const fd = new FormData();
+    fd.append('image', file);
+
+    try {
+      const res = await fetch('/api/mark-attendance', { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.marked) {
+          showAlert('attendanceAlert', 'success', data.message || 'Attendance marked!');
+        } else {
+          showAlert('attendanceAlert', 'warning', data.message || 'Already marked today.');
+        }
+        document.getElementById('resultName').textContent = data.user?.name || '—';
+        document.getElementById('resultRoll').textContent = 'Roll: ' + (data.user?.roll_no || '—');
+        document.getElementById('resultConf').textContent = data.confidence + ' pts';
+        document.getElementById('recognitionResult').style.display = 'block';
+        loadStats();
+      } else {
+        showAlert('attendanceAlert', 'error', data.error || 'Could not mark attendance.');
+      }
+    } catch (err) {
+      showAlert('attendanceAlert', 'error', 'Network error: ' + err.message);
+    } finally {
+      setLoading('markBtn', 'markSpinner', false);
+    }
+  }
+
+  /* ── Records ── */
+  async function fetchRecords() {
+    const date = document.getElementById('dateFilter').value;
+    if (!date) { alert('Please select a date.'); return; }
+    setLoading('markBtn', 'recordsSpinner', true);
+
+    const spin = document.getElementById('recordsSpinner');
+    spin.style.display = 'block';
+
+    try {
+      const res = await fetch('/api/attendance?date=' + date);
+      const data = await res.json();
+      const tbody = document.getElementById('recordsBody');
+
+      if (!res.ok) { tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">❌</div>' + (data.error || 'Error') + '</div></td></tr>'; return; }
+
+      if (!data.records || data.records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">📭</div>No records for this date</div></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.records.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${esc(r.name)}</strong></td>
+          <td>${esc(r.roll_no)}</td>
+          <td>${esc(r.time || r.timestamp || '—')}</td>
+          <td><span class="badge badge-present">✓ Present</span></td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      document.getElementById('recordsBody').innerHTML = '<tr><td colspan="5"><div class="empty-state">Network error</div></td></tr>';
+    } finally {
+      spin.style.display = 'none';
+    }
+  }
+
+  /* ── Summary ── */
+  async function fetchSummary() {
+    const spin = document.getElementById('summarySpinner');
+    spin.style.display = 'block';
+    const wrap = document.getElementById('summaryContent');
+
+    try {
+      const res = await fetch('/api/attendance/summary');
+      const data = await res.json();
+
+      if (!res.ok) { wrap.innerHTML = '<div class="empty-state">Error loading summary</div>'; return; }
+
+      const items = Array.isArray(data) ? data : (data.summary || data.data || Object.values(data));
+
+      if (!items || items.length === 0) {
+        wrap.innerHTML = '<div class="empty-state"><div class="icon">🏆</div>No attendance data yet</div>';
+        return;
+      }
+
+      const maxDays = Math.max(...items.map(i => i.days_present || i.total || 0), 1);
+
+      wrap.innerHTML = '<div class="summary-grid">' + items.map(s => {
+        const days = s.days_present || s.total || 0;
+        const pct  = Math.round((days / maxDays) * 100);
+        return `
+          <div class="summary-card">
+            <div class="summary-name">${esc(s.name)}</div>
+            <div class="summary-roll">${esc(s.roll_no)}</div>
+            <div class="summary-count">${days}</div>
+            <div class="summary-days">days present</div>
+            <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join('') + '</div>';
+    } catch (err) {
+      wrap.innerHTML = '<div class="empty-state">Network error</div>';
+    } finally {
+      spin.style.display = 'none';
+    }
+  }
+
+  /* ── Stats ── */
+  async function loadStats() {
+    try {
+      const [uRes, sRes] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/attendance/summary')
+      ]);
+      const users   = await uRes.json();
+      const summary = await sRes.json();
+
+      const userList = Array.isArray(users) ? users : [];
+      document.getElementById('statUsers').textContent = userList.length;
+
+      const items = Array.isArray(summary) ? summary : (summary.summary || summary.data || []);
+      const total = items.reduce((a, i) => a + (i.days_present || i.total || 0), 0);
+      document.getElementById('statTotal').textContent = total;
+
+      // Today's attendance
+      const today = new Date().toISOString().slice(0, 10);
+      const tRes  = await fetch('/api/attendance?date=' + today);
+      const tData = await tRes.json();
+      document.getElementById('statToday').textContent = tData.count ?? 0;
+    } catch (_) {}
+  }
+
+  /* ── Escape HTML ── */
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  /* ── Set today as default date ── */
+  document.getElementById('dateFilter').value = new Date().toISOString().slice(0, 10);
+
+  /* ── Boot ── */
+  loadStats();
+</script>
+</body>
+</html>
