@@ -1,0 +1,5 @@
+﻿attendance-system/.venv/
+attendance-system/__pycache__/
+*.pyc
+*.db
+attendance-system/data/
