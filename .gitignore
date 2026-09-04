@@ -1,5 +1,9 @@
-﻿attendance-system/.venv/
-attendance-system/__pycache__/
+__pycache__/
 *.pyc
-*.db
-attendance-system/data/
+data/db/*.db
+data/db/*.yml
+data/db/*.npy
+data/faces/*
+!data/faces/.gitkeep
+venv/
+.env

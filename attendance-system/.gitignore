@@ -1,9 +1,0 @@
-__pycache__/
-*.pyc
-data/db/*.db
-data/db/*.yml
-data/db/*.npy
-data/faces/*
-!data/faces/.gitkeep
-venv/
-.env
